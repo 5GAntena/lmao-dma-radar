@@ -226,7 +226,7 @@ namespace eft_dma_shared.Common.Unity
         #endregion
 
         #region Mono Types
-        private static class Singleton
+        public static class Singleton
         {
             [StructLayout(LayoutKind.Explicit, Pack = 1)]
             private readonly struct SingletonHashTable

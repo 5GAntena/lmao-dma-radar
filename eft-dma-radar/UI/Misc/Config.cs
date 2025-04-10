@@ -829,6 +829,12 @@ namespace eft_dma_radar.UI.Misc
         /// </summary>
         [JsonPropertyName("instantPlant")]
         public bool InstantPlant { get; set; } = false;
+
+        /// <summary>
+        /// Enable ambient sound mechanism
+        /// </summary>
+        [JsonPropertyName("audioMuter")]
+        public AudioMutedConfig AudioMuter { get; set; } = new();
     }
 
     public sealed class SuperSpeedConfig
@@ -895,6 +901,18 @@ namespace eft_dma_radar.UI.Misc
         /// </summary>
         [JsonPropertyName("amount")]
         public int Amount { get; set; } = 50;
+    }
+
+    public sealed class AudioMutedConfig
+    {
+        /// <summary>
+        /// Mutes different ambient or enviroment sounds
+        /// </summary>
+        [JsonPropertyName("audioMuter")]
+        public bool AudioCheck { get; set; } = false;
+
+        [JsonPropertyName("userFxOptions")]
+        public Dictionary<string, FxData> UserFxOptions { get; set; } = new Dictionary<string, FxData>();
     }
 
     public sealed class AimbotConfig

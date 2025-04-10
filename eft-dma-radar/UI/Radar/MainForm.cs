@@ -53,6 +53,12 @@ namespace eft_dma_radar.UI.Radar
             AutoReset = false
         };
 
+        private readonly Timer _audioFxMuteTimer = new()
+        {
+            Interval = 1000,
+            AutoReset = false
+        };
+
         private IMouseoverEntity _mouseOverItem;
         private bool _mouseDown;
         private Point _lastMousePosition;
@@ -720,10 +726,10 @@ namespace eft_dma_radar.UI.Radar
         {
             // Update config
             Program.Config.MemWrites.StreamerMode = checkBox_streamerMode.Checked;
-        
+
             // Enable or disable the feature
             MemPatchFeature<StreamerMode>.Instance.Enabled = checkBox_streamerMode.Checked;
-        
+
             // Apply the changes immediately
             MemPatchFeature<StreamerMode>.Instance.TryApply();
         }
@@ -950,7 +956,7 @@ namespace eft_dma_radar.UI.Radar
             flowLayoutPanel_Loot_Containers.Enabled = enabled;
 
             // Update the SettingsWidgetForm checkbox
-            _settingsWidgetForm?.UpdateShowContainersCheckbox (enabled);
+            _settingsWidgetForm?.UpdateShowContainersCheckbox(enabled);
         }
         private void TrackBar_LTWAmount_ValueChanged(object sender, EventArgs e)
         {
@@ -1402,8 +1408,8 @@ namespace eft_dma_radar.UI.Radar
                 _settingsWidgetForm.UpdateTrackBarAimFOV(trackBar_AimFOV.Value);
                 _settingsWidgetForm.UpdateLabelAimFOV(trackBar_AimFOV.Value);
                 _settingsWidgetForm.UpdateComboBoxAimbotTarget(comboBox_AimbotTarget.SelectedIndex);
-                _settingsWidgetForm.UpdateContainersCheckedState();               
-                _settingsWidgetForm.Show(); 
+                _settingsWidgetForm.UpdateContainersCheckedState();
+                _settingsWidgetForm.Show();
             }
         }
 
@@ -2077,6 +2083,7 @@ namespace eft_dma_radar.UI.Radar
             toolTip1.SetToolTip(checkBox_InstantPlant, "Disables the countdown when planting a quest item.");
             toolTip1.SetToolTip(checkBox_FastWeaponOps, "Makes weapon operations (instant ADS, reloading mag,etc.) faster for your player.\n" +
                 "NOTE: Trying to heal or do other actions while reloading a mag can cause the 'hands busy' bug.");
+            toolTip1.SetToolTip(checkBoxEnableMute, "Enables the ability to mute or increase the volume of various anoying ambient sounds");
             toolTip1.SetToolTip(checkBox_FullBright, "Enables the Full Bright Feature. This will make the game world brighter.");
             toolTip1.SetToolTip(checkBox_NoWepMalf, "Enables the No Weapons Malfunction feature. This prevents your gun from failing to fire due to misfires/overheating/etc.\n" +
                 "Once enabled this feature will remain enabled until you restart your game.\n" +
@@ -2317,7 +2324,7 @@ namespace eft_dma_radar.UI.Radar
             checkBox_AdvancedMemWrites.CheckedChanged += checkBox_AdvancedMemWrites_CheckedChanged;
             /// Set Features
             checkBox_hideRaidcode.Checked = MemPatchFeature<HideRaidCode>.Instance.Enabled;
-     checkBox_streamerMode.Checked = MemPatchFeature<StreamerMode>.Instance.Enabled;
+            checkBox_streamerMode.Checked = MemPatchFeature<StreamerMode>.Instance.Enabled;
             checkBox_AntiPage.Checked = Config.MemWrites.AntiPage;
             checkBox_EnableMemWrite.Checked = MemWrites.Enabled;
             checkBox_NoRecoilSway.Checked = MemWriteFeature<NoRecoil>.Instance.Enabled;
@@ -2355,6 +2362,7 @@ namespace eft_dma_radar.UI.Radar
             checkBox_UnclampFreeLook.Checked = MemWriteFeature<UnclampFreeLook>.Instance.Enabled;
             checkBox_InstantPoseChange.Checked = MemWriteFeature<InstantPoseChange>.Instance.Enabled;
             checkBox_InstantPlant.Checked = MemWriteFeature<InstantPlant>.Instance.Enabled;
+            checkBoxEnableMute.Checked = MemWriteFeature<AudioMuter>.Instance.Enabled;
 
             switch (Aimbot.Config.TargetingMode)
             {
@@ -2552,6 +2560,7 @@ namespace eft_dma_radar.UI.Radar
             CameraManagerBase.UpdateViewportRes();
             LoadESPConfig();
             InitializeContainers();
+            InitializeAudioValues();
 
             checkBox_HideNames.Checked = Config.HideNames;
             checkBox_GrpConnect.Checked = Config.ConnectGroups;
@@ -4058,7 +4067,7 @@ namespace eft_dma_radar.UI.Radar
 
         private void button_WebRadarStart_Click(object sender, EventArgs e) =>
             StartWebRadar();
-        private void button_EspServerStart_Click(object sender, EventArgs e) => 
+        private void button_EspServerStart_Click(object sender, EventArgs e) =>
             StartWebEsp();
 
         private void checkBox_WebRadarUPNP_CheckedChanged(object sender, EventArgs e)
@@ -4259,6 +4268,100 @@ namespace eft_dma_radar.UI.Radar
         }
         #endregion
 
+        #region AudioMuter
+        private void InitializeAudioValues()
+        {
+            if (Config.MemWrites.AudioMuter.UserFxOptions.Count > 0 && flowLayoutPanelAudioOptions.Controls.Count == 0)
+            {
+                foreach (var (option, index) in Config.MemWrites.AudioMuter.UserFxOptions.Select((option, index) => (option, index)))
+                {
+                    AddAudioOptions(option.Value.FxState, option.Key, option.Value.FxVolume.ToString(), index);
+                }
+            }
+        }
+
+        private void checkBoxEnableMute_CheckedChanged(object sender, EventArgs e)
+        {
+            MemWriteFeature<AudioMuter>.Instance.Enabled = checkBoxEnableMute.Checked;
+        }
+
+        private void TextBox_TextChanged(object sender, EventArgs e)
+        {
+            if (sender is TextBox textBox && textBox.Tag is ValueTuple<CheckBox, Label> tagData)
+            {
+                CheckBox checkBox = tagData.Item1;
+                Label label = tagData.Item2;
+
+                bool isChecked = checkBox.Checked;
+                string floatVal = textBox.Text;
+                string strVal = label.Text;
+
+                if (!float.TryParse(floatVal, out float value))
+                {
+                    return;
+                }
+
+                if (value < -80f || value > 80f)
+                {
+                    return;
+                }
+
+                if (isChecked)
+                {
+                    Config.MemWrites.AudioMuter.UserFxOptions[strVal] = new FxData(isChecked, value);
+                }
+                _audioFxMuteTimer.Restart();
+            }
+        }
+
+        public void AddAudioOptions(bool checkedOption, string labelText, string volumeString, int index)
+        {
+            var rowPanel = new Panel
+            {
+                Width = flowLayoutPanelAudioOptions.ClientSize.Width - 25,
+                Height = 30,
+                Margin = new Padding(3),
+                Name = "rowPanelAudio" + index.ToString()
+            };
+
+            var checkBox = new CheckBox
+            {
+                Checked = checkedOption,
+                Text = "",
+                Location = new Point(5, 5),
+                Width = 20,
+                Anchor = AnchorStyles.Right,
+                Name = "checkBoxAudio" + index.ToString()
+            };
+
+            var label = new Label
+            {
+                Text = labelText,
+                Location = new Point(30, 5),
+                AutoSize = true,
+                Anchor = AnchorStyles.Right
+            };
+
+            var textBox = new TextBox
+            {
+                Location = new Point(210, 5),
+                Width = 50,
+                Text = volumeString,
+                Anchor = AnchorStyles.Right,
+                Name = "textBoxAudio" + index.ToString()
+            };
+
+            textBox.TextChanged += TextBox_TextChanged;
+            textBox.Tag = (checkBox, label);
+
+            rowPanel.Controls.Add(checkBox);
+            rowPanel.Controls.Add(label);
+            rowPanel.Controls.Add(textBox);
+
+            flowLayoutPanelAudioOptions.Controls.Add(rowPanel);
+        }
+        #endregion
+
         private void linkLabel_CheckForUpdates_LinkClicked(object sender, LinkLabelLinkClickedEventArgs e)
         {
             const string updatesUrl = "https://lone-eft.com/opensource";
@@ -4279,7 +4382,5 @@ namespace eft_dma_radar.UI.Radar
                 }
             }
         }
-
-
     }
 }
