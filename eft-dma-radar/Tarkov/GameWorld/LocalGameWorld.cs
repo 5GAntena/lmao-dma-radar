@@ -11,6 +11,7 @@ using eft_dma_shared.Common.Unity;
 using eft_dma_radar.Tarkov.Features.MemoryWrites;
 using eft_dma_shared.Common.Misc.Data;
 using eft_dma_shared.Common.Misc;
+using eft_dma_shared.Common.Misc.Pools;
 
 namespace eft_dma_radar.Tarkov.GameWorld
 {

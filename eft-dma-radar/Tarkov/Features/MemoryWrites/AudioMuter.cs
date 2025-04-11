@@ -43,6 +43,7 @@ namespace LonesEFTRadar.Tarkov.Features.MemoryWrites
         {
             try
             {
+
                 if (Enabled && Memory.InRaid)
                 {
                     AudioInstance.ThrowIfInvalidVirtualAddress();
@@ -80,39 +81,24 @@ namespace LonesEFTRadar.Tarkov.Features.MemoryWrites
         {
             bool anyChangesMade = false;
 
-            if (Config.UserFxOptions.Values.Any(fx => fx.FxState))
+            foreach (var kvp in Config.UserFxOptions)
             {
-                foreach (var kvp in Config.UserFxOptions)
+                string fxKey = kvp.Key;
+                FxData current = kvp.Value;
+
+                if (!_previousStates.TryGetValue(fxKey, out var previous) || previous.lastState != current.FxState || Math.Abs(previous.lastVolume - current.FxVolume) > 0.0001f)
                 {
-                    string fxKey = kvp.Key;
-                    FxData current = kvp.Value;
-
-                    if (!_previousStates.TryGetValue(fxKey, out var previous) || previous.lastState != current.FxState || Math.Abs(previous.lastVolume - current.FxVolume) > 0.0001f)
+                    if (current.FxState)
                     {
-                        if (current.FxState)
-                        {
-                            betterAudio.Master.Internal.SetFloat(kvp.Key, kvp.Value.FxVolume, writes);
-                            anyChangesMade = true;
-                        }
-
-                        _previousStates[fxKey] = (current.FxState, current.FxVolume);
+                        betterAudio.Master.Internal.SetFloat(kvp.Key, kvp.Value.FxVolume, writes);
+                        anyChangesMade = true;
                     }
-                }
 
-                if (anyChangesMade)
-                {
-                    writes.Callbacks += () =>
-                    {
-                        LoneLogging.WriteLine("Sound volumes Set");
-                    };
+                    _previousStates[fxKey] = (current.FxState, current.FxVolume);
                 }
+            }
 
-                return true;
-            }
-            else
-            {
-                return false;
-            }
+            return anyChangesMade;
         }
 
         public class BetterAudio

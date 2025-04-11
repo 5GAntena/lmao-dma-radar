@@ -41,7 +41,16 @@ namespace eft_dma_radar.Tarkov.GameWorld
             try
             {
                 using var playersList = MemList<ulong>.Get(this, false); // Realtime Read
-                var registered = playersList.Where(x => x != 0x0).ToHashSet();
+                var registered = new HashSet<ulong>();
+
+                foreach (var player in playersList)
+                {
+                    if (player != 0x0)
+                    {
+                        registered.Add(player);
+                    }
+                }
+
                 /// Allocate New Players
                 foreach (var playerBase in registered)
                 {

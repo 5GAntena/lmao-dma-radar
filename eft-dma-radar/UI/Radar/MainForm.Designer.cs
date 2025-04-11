@@ -1181,7 +1181,6 @@ namespace eft_dma_radar.UI.Radar
             // 
             // flowLayoutPanel1
             // 
-            flowLayoutPanel1.AutoSize = true;
             flowLayoutPanel1.AutoSizeMode = AutoSizeMode.GrowAndShrink;
             flowLayoutPanel1.BorderStyle = BorderStyle.FixedSingle;
             flowLayoutPanel1.Controls.Add(label34);
@@ -1189,15 +1188,16 @@ namespace eft_dma_radar.UI.Radar
             flowLayoutPanel1.Controls.Add(checkedListBox_QuestHelper);
             flowLayoutPanel1.Dock = DockStyle.Top;
             flowLayoutPanel_Settings.SetFlowBreak(flowLayoutPanel1, true);
+            flowLayoutPanel1.FlowDirection = FlowDirection.TopDown;
             flowLayoutPanel1.Location = new Point(3, 299);
             flowLayoutPanel1.Name = "flowLayoutPanel1";
-            flowLayoutPanel1.Size = new Size(1545, 181);
+            flowLayoutPanel1.Size = new Size(1545, 206);
             flowLayoutPanel1.TabIndex = 62;
+            flowLayoutPanel1.WrapContents = false;
             // 
             // label34
             // 
             label34.AutoSize = true;
-            flowLayoutPanel1.SetFlowBreak(label34, true);
             label34.Font = new Font("Segoe UI Semibold", 12F, FontStyle.Bold, GraphicsUnit.Point, 0);
             label34.Location = new Point(3, 0);
             label34.Name = "label34";
@@ -1207,13 +1207,14 @@ namespace eft_dma_radar.UI.Radar
             // 
             // checkBox_QuestHelper_Enabled
             // 
-            checkBox_QuestHelper_Enabled.Anchor = AnchorStyles.Right;
             checkBox_QuestHelper_Enabled.AutoSize = true;
             checkBox_QuestHelper_Enabled.Checked = true;
             checkBox_QuestHelper_Enabled.CheckState = CheckState.Checked;
-            checkBox_QuestHelper_Enabled.Location = new Point(3, 92);
+            checkBox_QuestHelper_Enabled.Dock = DockStyle.Top;
+            checkBox_QuestHelper_Enabled.Location = new Point(9, 24);
+            checkBox_QuestHelper_Enabled.Margin = new Padding(9, 3, 3, 3);
             checkBox_QuestHelper_Enabled.Name = "checkBox_QuestHelper_Enabled";
-            checkBox_QuestHelper_Enabled.Size = new Size(68, 19);
+            checkBox_QuestHelper_Enabled.Size = new Size(320, 19);
             checkBox_QuestHelper_Enabled.TabIndex = 37;
             checkBox_QuestHelper_Enabled.Text = "Enabled";
             checkBox_QuestHelper_Enabled.UseVisualStyleBackColor = true;
@@ -1221,11 +1222,11 @@ namespace eft_dma_radar.UI.Radar
             // 
             // checkedListBox_QuestHelper
             // 
-            checkedListBox_QuestHelper.Anchor = AnchorStyles.Right;
             checkedListBox_QuestHelper.FormattingEnabled = true;
-            checkedListBox_QuestHelper.Location = new Point(77, 28);
+            checkedListBox_QuestHelper.Location = new Point(9, 49);
+            checkedListBox_QuestHelper.Margin = new Padding(9, 3, 3, 3);
             checkedListBox_QuestHelper.Name = "checkedListBox_QuestHelper";
-            checkedListBox_QuestHelper.Size = new Size(343, 148);
+            checkedListBox_QuestHelper.Size = new Size(320, 130);
             checkedListBox_QuestHelper.TabIndex = 48;
             // 
             // flowLayoutPanel_WebRadarSettings
@@ -1249,7 +1250,7 @@ namespace eft_dma_radar.UI.Radar
             flowLayoutPanel_WebRadarSettings.Controls.Add(linkLabel_WebRadarLink);
             flowLayoutPanel_WebRadarSettings.Dock = DockStyle.Top;
             flowLayoutPanel_Settings.SetFlowBreak(flowLayoutPanel_WebRadarSettings, true);
-            flowLayoutPanel_WebRadarSettings.Location = new Point(3, 486);
+            flowLayoutPanel_WebRadarSettings.Location = new Point(3, 511);
             flowLayoutPanel_WebRadarSettings.Name = "flowLayoutPanel_WebRadarSettings";
             flowLayoutPanel_WebRadarSettings.Size = new Size(1545, 60);
             flowLayoutPanel_WebRadarSettings.TabIndex = 5;
@@ -1407,7 +1408,7 @@ namespace eft_dma_radar.UI.Radar
             flowLayoutPanel_MemWriteCheckbox.AutoSizeMode = AutoSizeMode.GrowAndShrink;
             flowLayoutPanel_MemWriteCheckbox.Controls.Add(checkBox_EnableMemWrite);
             flowLayoutPanel_Settings.SetFlowBreak(flowLayoutPanel_MemWriteCheckbox, true);
-            flowLayoutPanel_MemWriteCheckbox.Location = new Point(3, 552);
+            flowLayoutPanel_MemWriteCheckbox.Location = new Point(3, 577);
             flowLayoutPanel_MemWriteCheckbox.Name = "flowLayoutPanel_MemWriteCheckbox";
             flowLayoutPanel_MemWriteCheckbox.Size = new Size(190, 25);
             flowLayoutPanel_MemWriteCheckbox.TabIndex = 62;
@@ -1466,7 +1467,7 @@ namespace eft_dma_radar.UI.Radar
             flowLayoutPanel_MemWrites.Controls.Add(flowLayoutPanel_WideLean);
             flowLayoutPanel_MemWrites.Dock = DockStyle.Fill;
             flowLayoutPanel_Settings.SetFlowBreak(flowLayoutPanel_MemWrites, true);
-            flowLayoutPanel_MemWrites.Location = new Point(3, 583);
+            flowLayoutPanel_MemWrites.Location = new Point(3, 608);
             flowLayoutPanel_MemWrites.Name = "flowLayoutPanel_MemWrites";
             flowLayoutPanel_MemWrites.Size = new Size(1545, 526);
             flowLayoutPanel_MemWrites.TabIndex = 1;
@@ -2075,15 +2076,16 @@ namespace eft_dma_radar.UI.Radar
             flowLayoutPanelAudio.Controls.Add(label32);
             flowLayoutPanelAudio.Controls.Add(checkBoxEnableMute);
             flowLayoutPanelAudio.Controls.Add(flowLayoutPanelAudioOptions);
+            flowLayoutPanelAudio.FlowDirection = FlowDirection.TopDown;
             flowLayoutPanelAudio.Location = new Point(840, 133);
             flowLayoutPanelAudio.Name = "flowLayoutPanelAudio";
             flowLayoutPanelAudio.Size = new Size(400, 200);
             flowLayoutPanelAudio.TabIndex = 86;
+            flowLayoutPanelAudio.WrapContents = false;
             // 
             // label32
             // 
             label32.AutoSize = true;
-            flowLayoutPanelAudio.SetFlowBreak(label32, true);
             label32.Font = new Font("Segoe UI Semibold", 9F, FontStyle.Bold);
             label32.Location = new Point(3, 0);
             label32.Name = "label32";
@@ -2094,8 +2096,7 @@ namespace eft_dma_radar.UI.Radar
             // checkBoxEnableMute
             // 
             checkBoxEnableMute.AutoSize = true;
-            flowLayoutPanelAudio.SetFlowBreak(checkBoxEnableMute, true);
-            checkBoxEnableMute.Location = new Point(7, 28);
+            checkBoxEnableMute.Location = new Point(7, 18);
             checkBoxEnableMute.Margin = new Padding(7, 3, 3, 3);
             checkBoxEnableMute.Name = "checkBoxEnableMute";
             checkBoxEnableMute.Size = new Size(92, 19);
@@ -2108,7 +2109,7 @@ namespace eft_dma_radar.UI.Radar
             // 
             flowLayoutPanelAudioOptions.AutoScroll = true;
             flowLayoutPanelAudioOptions.BorderStyle = BorderStyle.FixedSingle;
-            flowLayoutPanelAudioOptions.Location = new Point(3, 53);
+            flowLayoutPanelAudioOptions.Location = new Point(3, 43);
             flowLayoutPanelAudioOptions.Name = "flowLayoutPanelAudioOptions";
             flowLayoutPanelAudioOptions.Size = new Size(392, 146);
             flowLayoutPanelAudioOptions.TabIndex = 2;
@@ -2498,7 +2499,7 @@ namespace eft_dma_radar.UI.Radar
             flowLayoutPanel_MonitorSettings.Controls.Add(button_DetectRes);
             flowLayoutPanel_MonitorSettings.Dock = DockStyle.Top;
             flowLayoutPanel_Settings.SetFlowBreak(flowLayoutPanel_MonitorSettings, true);
-            flowLayoutPanel_MonitorSettings.Location = new Point(3, 1115);
+            flowLayoutPanel_MonitorSettings.Location = new Point(3, 1140);
             flowLayoutPanel_MonitorSettings.Name = "flowLayoutPanel_MonitorSettings";
             flowLayoutPanel_MonitorSettings.Size = new Size(1545, 70);
             flowLayoutPanel_MonitorSettings.TabIndex = 2;
@@ -2602,7 +2603,7 @@ namespace eft_dma_radar.UI.Radar
             flowLayoutPanel_ESPSettings.Controls.Add(flowLayoutPanel4);
             flowLayoutPanel_ESPSettings.Dock = DockStyle.Top;
             flowLayoutPanel_Settings.SetFlowBreak(flowLayoutPanel_ESPSettings, true);
-            flowLayoutPanel_ESPSettings.Location = new Point(3, 1191);
+            flowLayoutPanel_ESPSettings.Location = new Point(3, 1216);
             flowLayoutPanel_ESPSettings.Name = "flowLayoutPanel_ESPSettings";
             flowLayoutPanel_ESPSettings.Size = new Size(1545, 286);
             flowLayoutPanel_ESPSettings.TabIndex = 3;
