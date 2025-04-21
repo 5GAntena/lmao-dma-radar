@@ -4066,6 +4066,10 @@ namespace eft_dma_radar.UI.Radar
         private Button button_SettingWidget;
         private CheckBox checkBox_ESP_Switches;
         private Button button_RotateMap;
+        private FlowLayoutPanel flowLayoutPanelAudio;
+        private Label label32;
+        private CheckBox checkBoxEnableMute;
+        private FlowLayoutPanel flowLayoutPanelAudioOptions;
     }
 }
 

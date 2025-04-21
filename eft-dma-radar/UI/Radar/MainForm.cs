@@ -294,61 +294,45 @@ namespace eft_dma_radar.UI.Radar
             var canvas = e.Surface.Canvas; // get Canvas reference to draw on
             var mousePos = GetMousePosition(); // Implement this to track mouse position
             var mouseClicked = CheckMouseClick();
-
             try
             {
                 SetFPS(inRaid);
                 SetMapName();
                 /// Check for map switch
                 var mapID = MapID; // Cache ref
-
                 if (!mapID.Equals(LoneMapManager.Map?.ID, StringComparison.OrdinalIgnoreCase)) // Map changed
                 {
                     LoneMapManager.LoadMap(mapID);
                     UpdateSwitches();
                 }
                 canvas.Clear(); // Clear canvas
-
-                if (!inRaid || localPlayer == null)
+                if (inRaid && localPlayer is not null) // LocalPlayer is in a raid -> Begin Drawing...
                 {
-                    if (!isStarting)
-                        GameNotRunningStatus(canvas);
-                    else if (isStarting && !isReady)
-                        StartingUpStatus(canvas);
-                    else if (!inRaid)
-                        WaitingForRaidStatus(canvas);
+                    var map = LoneMapManager.Map; // Cache ref
+                    ArgumentNullException.ThrowIfNull(map, nameof(map));
+                    var closestToMouse = _mouseOverItem; // cache ref
+                    var mouseOverGrp = MouseoverGroup; // cache value for entire render
+                                                       // Get LocalPlayer location
+                    var localPlayerPos = localPlayer.Position;
+                    var localPlayerMapPos = localPlayerPos.ToMapPos(map.Config);
+                    if (groupBox_MapSetup.Visible) // Print coordinates for Map Setup Helper (if visible)
+                        label_Pos.Text = $"Unity X,Y,Z: {localPlayerPos.X},{localPlayerPos.Y},{localPlayerPos.Z}";
+                    // Prepare to draw Game Map
+                    LoneMapParams mapParams; // Drawing Source
+                    if (checkBox_MapFree.Checked) // Map fixed location, click to pan map
+                        mapParams = map.GetParameters(skglControl_Radar, _zoom, ref _mapPanPosition);
+                    else
+                        mapParams = map.GetParameters(skglControl_Radar, _zoom, ref localPlayerMapPos); // Map auto follow LocalPlayer
+                    var mapCanvasBounds = new SKRect() // Drawing Destination
+                    {
+                        Left = skglControl_Radar.Left,
+                        Right = skglControl_Radar.Right,
+                        Top = skglControl_Radar.Top,
+                        Bottom = skglControl_Radar.Bottom
+                    };
 
-                    SetStatusText(canvas);
-                    canvas.Flush();
-
-                    return;
-                }
-
-                var map = LoneMapManager.Map; // Cache ref
-
-                ArgumentNullException.ThrowIfNull(map, nameof(map));
-
-                var mapConfig = map.Config;
-                var localPos = localPlayer.Position;
-                var localMapPos = localPos.ToMapPos(mapConfig);
-
-                if (groupBox_MapSetup.Visible)
-                    label_Pos.Text = $"Unity X, Y, Z: {localPos.X},{localPos.Y},{localPos.Z}";
-
-                var mapParams = checkBox_MapFree.Checked
-                    ? map.GetParameters(skglControl_Radar, _zoom, ref _mapPanPosition)
-                    : map.GetParameters(skglControl_Radar, _zoom, ref localMapPos);
-
-                var bounds = new SKRect
-                {
-                    Left = skglControl_Radar.Left,
-                    Right = skglControl_Radar.Right,
-                    Top = skglControl_Radar.Top,
-                    Bottom = skglControl_Radar.Bottom
-                };
-
-                canvas.Save();
-                canvas.RotateDegrees(180, bounds.MidX, bounds.MidY);
+                    // Save the current canvas state
+                    canvas.Save();
 
                     // Get the center of the canvas
                     float centerX = (mapCanvasBounds.Left + mapCanvasBounds.Right) / 2;
@@ -363,18 +347,18 @@ namespace eft_dma_radar.UI.Radar
                     // Draw LocalPlayer
                     localPlayer.Draw(canvas, mapParams, localPlayer);
 
-                var loot = Config.ShowLoot ? Loot?.ToList() : null;
-                var containers = Config.Containers.Show ? Containers?.ToList() : null;
-                var questZones = Config.QuestHelper.Enabled ? Memory.QuestManager?.LocationConditions?.ToList() : null;
-                var explosives = Explosives;
-                var exits = Exits;
-                var allPlayers = AllPlayers?.Where(x => !x.HasExfild).ToList();
+                    // Draw other players
+                    var allPlayers = AllPlayers?.Where(x => !x.HasExfild); // Skip exfil'd players
 
-                if (loot != null)
-                {
-                    for (int i = loot.Count - 1; i >= 0; i--)
+                    if (Config.ShowLoot) // Draw loot (if enabled)
                     {
-                        var item = loot[i];
+                        var loot = Loot?.Reverse(); // Draw important loot last (on top)
+                        if (loot is not null)
+                        {
+                            foreach (var item in loot)
+                            {
+                                if (checkBox_HideCorpses.Checked && item is LootCorpse)
+                                    continue;
 
                                 // Get the item's position on the map
                                 var itemPosition = item.Position.ToMapPos(map.Config).ToZoomedPos(mapParams);
@@ -408,7 +392,7 @@ namespace eft_dma_radar.UI.Radar
 
                                         // Get the container's position on the map
                                         var containerPosition = container.Position.ToMapPos(map.Config).ToZoomedPos(mapParams);
-                                        
+
                                         // Save the current canvas state
                                         canvas.Save();
 
@@ -475,36 +459,67 @@ namespace eft_dma_radar.UI.Radar
                             }
                     } // End QuestHelper
 
-                if (checkBox_ShowMines.Checked && GameData.Mines.TryGetValue(mapID, out var mines))
-                {
-                    foreach (ref var mine in mines.Span)
-                        mine.ToMapPos(mapConfig).ToZoomedPos(mapParams).DrawMineMarker(canvas);
-                }
-
-                if (explosives != null)
-                {
-                    foreach (var exp in explosives)
-                        exp.Draw(canvas, mapParams, localPlayer);
-                }
-
-                if (exits != null)
-                {
-                    foreach (var exit in exits)
+                    if (checkBox_ShowMines.Checked &&
+                    GameData.Mines.TryGetValue(mapID, out var mines)) // Draw Mines
                     {
-                        if (exit is Exfil exfil && !localPlayer.IsPmc && exfil.Status == Exfil.EStatus.Closed) continue;
-                        var pos = exit.Position.ToMapPos(mapConfig).ToZoomedPos(mapParams);
-                        canvas.Save();
-                        canvas.RotateDegrees(180, pos.X, pos.Y);
-                        exit.Draw(canvas, mapParams, localPlayer);
-                        canvas.Restore();
+                        foreach (ref var mine in mines.Span)
+                        {
+                            var mineZoomedPos = mine.ToMapPos(map.Config).ToZoomedPos(mapParams);
+                            mineZoomedPos.DrawMineMarker(canvas);
+                        }
                     }
-                }
 
-                foreach (var sw in _switches)
-                {
-                    var pos = sw.Position.ToMapPos(mapConfig).ToZoomedPos(mapParams);
-                    sw.Draw(canvas, mapParams, localPlayer);
-                }
+                    var explosives = Explosives; // cache ref
+                    if (explosives is not null) // Draw grenades
+                    {
+                        foreach (var explosive in explosives)
+                        {
+                            explosive.Draw(canvas, mapParams, localPlayer);
+                        }
+                    } // end grenades
+
+                    var exits = Exits; // cache ref
+                    if (exits is not null)
+                    {
+                        foreach (var exit in exits)
+                        {
+                            if (exit is Exfil exfil && !localPlayer.IsPmc && exfil.Status is Exfil.EStatus.Closed)
+                            {
+                                continue; // Only draw available SCAV Exfils
+                            }
+                            {
+
+                                // Get the exit's position on the map
+                                var exitPosition = exit.Position.ToMapPos(map.Config).ToZoomedPos(mapParams);
+
+                                // Save the current canvas state
+                                canvas.Save();
+
+                                // Apply a rotation transformation to the canvas
+                                ApplyRotationForText(canvas, exitPosition.X, exitPosition.Y, _rotationDegrees);
+
+                                // Draw the exit
+                                exit.Draw(canvas, mapParams, localPlayer);
+
+                                // Restore the canvas state
+                                canvas.Restore();
+                            }
+                        } // end exfils
+                    }
+                    // Draw switches from the cached list
+                    foreach (var switchInstance in _switches)
+                    {
+                        // Get the switch's position on the map
+                        var switchPosition = switchInstance.Position.ToMapPos(map.Config).ToZoomedPos(mapParams);
+
+                        // Save the current canvas state
+                        canvas.Save();
+
+                        // Apply a rotation transformation to the canvas
+                        ApplyRotationForText(canvas, switchPosition.X, switchPosition.Y, _rotationDegrees);
+
+                        // Draw the switch
+                        switchInstance.Draw(canvas, mapParams, localPlayer);
 
                         // Restore the canvas state
                         canvas.Restore();
@@ -517,23 +532,33 @@ namespace eft_dma_radar.UI.Radar
                             player.Draw(canvas, mapParams, localPlayer);
                         } // end ForEach (allPlayers)
 
-                if (checkBox_GrpConnect.Checked && allPlayers != null)
-                {
-                    var grouped = allPlayers.Where(p => p.IsHumanHostileActive && p.GroupID != -1).ToList();
-                    foreach (var grpID in grouped.Select(p => p.GroupID).Distinct())
+                    // End allPlayers not null
+                    if (checkBox_GrpConnect.Checked) // Connect Groups together
                     {
-                        var members = grouped.Where(p => p.GroupID == grpID).ToList();
-                        foreach (var a in members)
-                            foreach (var b in members)
+                        var groupedPlayers = allPlayers?
+                            .Where(x => x.IsHumanHostileActive && x.GroupID != -1);
+                        if (groupedPlayers is not null)
+                        {
+                            var groups = groupedPlayers.Select(x => x.GroupID).ToHashSet();
+                            foreach (var grp in groups)
                             {
-                                var pa = a.Position.ToMapPos(mapConfig).ToZoomedPos(mapParams);
-                                var pb = b.Position.ToMapPos(mapConfig).ToZoomedPos(mapParams);
-                                canvas.DrawLine(pa.X, pa.Y, pb.X, pb.Y, SKPaints.PaintConnectorGroup);
+                                var grpMembers = groupedPlayers.Where(x => x.GroupID == grp);
+                                if (grpMembers is not null && grpMembers.Any())
+                                {
+                                    var combinations = grpMembers
+                                        .SelectMany(x => grpMembers, (x, y) =>
+                                            Tuple.Create(
+                                                x.Position.ToMapPos(map.Config).ToZoomedPos(mapParams),
+                                                y.Position.ToMapPos(map.Config).ToZoomedPos(mapParams)));
+                                    foreach (var pair in combinations)
+                                        canvas.DrawLine(pair.Item1.X, pair.Item1.Y,
+                                            pair.Item2.X, pair.Item2.Y, SKPaints.PaintConnectorGroup);
+                                }
                             }
-                    }
-                }
+                        }
+                    } // End Grp Connect
 
-                DrawSelectedLootLine(canvas, localPlayer, mapParams);
+                    DrawSelectedLootLine(canvas, localPlayer, mapParams);
 
                     // Save the current canvas state
                     canvas.Save();
@@ -599,10 +624,10 @@ namespace eft_dma_radar.UI.Radar
                     }
                     // Restore the canvas state
                     canvas.Restore();
-                    
+
                     // Restore the canvas state
                     canvas.Restore();
-                 
+
                     // Draw Loot Info Widget
                     if (checkBox_ShowLootTab.Checked) // Loot Overlay
                     {
@@ -665,7 +690,7 @@ namespace eft_dma_radar.UI.Radar
                         WaitingForRaidStatus(canvas);
                 }
                 SetStatusText(canvas);
-                canvas.Flush();
+                canvas.Flush(); // commit frame to GPU
             }
             catch (Exception ex) // Log rendering errors
             {
