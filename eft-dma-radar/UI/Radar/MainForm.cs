@@ -64,6 +64,7 @@ namespace eft_dma_radar.UI.Radar
         private Point _lastMousePosition;
         private int _zoom = 100;
         private int _fps;
+        public int _rotationDegrees = 0;
         private Vector2 _mapPanPosition;
         private EspWidget _aimview;
         private PlayerInfoWidget _playerInfo;
@@ -267,6 +268,20 @@ namespace eft_dma_radar.UI.Radar
             });
         }
 
+        private void ApplyRotationForText(SKCanvas canvas, float itemX, float itemY, int rotationDegrees)
+        {
+            // Apply a rotation transformation to the canvas
+            canvas.RotateDegrees(rotationDegrees, itemX, itemY);
+
+            // Adjust text orientation for 90° and 270° rotations - this is the key fix
+            // For these rotations, we need to rotate the text an additional 180 degrees
+            // to ensure it appears upright and readable
+            if (rotationDegrees == 90 || rotationDegrees == 270)
+            {
+                canvas.RotateDegrees(180, itemX, itemY);
+            }
+        }
+
         /// <summary>
         /// Main Render Event.
         /// </summary>
@@ -335,8 +350,18 @@ namespace eft_dma_radar.UI.Radar
                 canvas.Save();
                 canvas.RotateDegrees(180, bounds.MidX, bounds.MidY);
 
-                map.Draw(canvas, localPos.Y, mapParams.Bounds, bounds);
-                localPlayer.Draw(canvas, mapParams, localPlayer);
+                    // Get the center of the canvas
+                    float centerX = (mapCanvasBounds.Left + mapCanvasBounds.Right) / 2;
+                    float centerY = (mapCanvasBounds.Top + mapCanvasBounds.Bottom) / 2;
+
+                    // Apply a rotation transformation to the canvas
+                    canvas.RotateDegrees(_rotationDegrees, centerX, centerY);
+
+                    // Draw the map
+                    map.Draw(canvas, localPlayer.Position.Y, mapParams.Bounds, mapCanvasBounds);
+
+                    // Draw LocalPlayer
+                    localPlayer.Draw(canvas, mapParams, localPlayer);
 
                 var loot = Config.ShowLoot ? Loot?.ToList() : null;
                 var containers = Config.Containers.Show ? Containers?.ToList() : null;
@@ -351,54 +376,104 @@ namespace eft_dma_radar.UI.Radar
                     {
                         var item = loot[i];
 
-                        if (checkBox_HideCorpses.Checked && item is LootCorpse) continue;
+                                // Get the item's position on the map
+                                var itemPosition = item.Position.ToMapPos(map.Config).ToZoomedPos(mapParams);
 
-                        var pos = item.Position.ToMapPos(mapConfig).ToZoomedPos(mapParams);
-                        canvas.Save();
-                        canvas.RotateDegrees(180, pos.X, pos.Y);
-                        item.Draw(canvas, mapParams, localPlayer);
-                        canvas.Restore();
-                    }
-                }
+                                // Save the current canvas state
+                                canvas.Save();
 
-                if (containers != null)
-                {
-                    foreach (var ctr in containers)
+                                // Apply a rotation transformation to the canvas
+                                ApplyRotationForText(canvas, itemPosition.X, itemPosition.Y, _rotationDegrees);
+
+                                // Draw the item
+                                item.Draw(canvas, mapParams, localPlayer);
+
+                                // Restore the canvas state
+                                canvas.Restore();
+                            }
+                        }
+                        if (Config.Containers.Show) // Draw Containers
+                        {
+                            var containers = Containers;
+                            if (containers is not null)
+                            {
+                                foreach (var container in containers)
+                                {
+                                    if (ContainerIsTracked(container.ID ?? "NULL"))
+                                    {
+                                        if (Config.Containers.HideSearched && container.Searched)
+                                        {
+                                            continue;
+                                        }
+
+                                        // Get the container's position on the map
+                                        var containerPosition = container.Position.ToMapPos(map.Config).ToZoomedPos(mapParams);
+                                        
+                                        // Save the current canvas state
+                                        canvas.Save();
+
+                                        // Apply a rotation transformation to the canvas
+                                        ApplyRotationForText(canvas, containerPosition.X, containerPosition.Y, _rotationDegrees);
+
+                                        // Draw the container
+                                        container.Draw(canvas, mapParams, localPlayer);
+
+                                        // Restore the canvas state
+                                        canvas.Restore();
+                                    }
+                                }
+                            }
+                        } // end containers
+                    } // end loot
+
+                    if (Config.QuestHelper.Enabled)
                     {
-                        if (!ContainerIsTracked(ctr.ID ?? "NULL") || (Config.Containers.HideSearched && ctr.Searched)) continue;
+                        var questItems = Loot?.Where(x => x is QuestItem);
+                        if (questItems is not null)
+                            foreach (var item in questItems)
+                            {
+                                // Save the current canvas state
+                                canvas.Save();
 
-                        var pos = ctr.Position.ToMapPos(mapConfig).ToZoomedPos(mapParams);
-                        canvas.Save();
-                        canvas.RotateDegrees(180, pos.X, pos.Y);
-                        ctr.Draw(canvas, mapParams, localPlayer);
-                        canvas.Restore();
-                    }
-                }
+                                // Get the quest location's position on the map
+                                var ItemPosition = item.Position.ToMapPos(mapParams.Map).ToZoomedPos(mapParams);
 
-                if (Config.QuestHelper.Enabled && loot != null)
-                {
-                    foreach (var item in loot)
-                    {
-                        if (item is not QuestItem) continue;
-                        var pos = item.Position.ToMapPos(mapConfig).ToZoomedPos(mapParams);
-                        canvas.Save();
-                        canvas.RotateDegrees(180, pos.X, pos.Y);
-                        item.Draw(canvas, mapParams, localPlayer);
-                        canvas.Restore();
-                    }
-                }
+                                // Apply a rotation transformation to the canvas
+                                float rotation = MainForm.Window._rotationDegrees;
+                                canvas.RotateDegrees(rotation, ItemPosition.X, ItemPosition.Y);
 
-                if (questZones != null)
-                {
-                    foreach (var q in questZones)
-                    {
-                        var pos = q.Position.ToMapPos(mapConfig).ToZoomedPos(mapParams);
-                        canvas.Save();
-                        canvas.RotateDegrees(180, pos.X, pos.Y);
-                        q.Draw(canvas, mapParams, localPlayer);
-                        canvas.Restore();
-                    }
-                }
+                                // Adjust text orientation for 90° and 270° rotations
+                                if (rotation == 90 || rotation == 270)
+                                {
+                                    canvas.RotateDegrees(180, ItemPosition.X, ItemPosition.Y);
+                                }
+
+                                // Draw the quest location
+                                item.Draw(canvas, mapParams, localPlayer);
+
+                                // Restore the canvas state
+                                canvas.Restore();
+                            }
+                        var questLocations = Memory.QuestManager?.LocationConditions;
+                        if (questLocations is not null)
+                            foreach (var loc in questLocations)
+                            {
+                                // Save the current canvas state
+                                canvas.Save();
+
+                                // Get the quest location's position on the map
+                                var locPosition = loc.Position.ToMapPos(map.Config).ToZoomedPos(mapParams);
+
+                                // Apply a rotation transformation to the canvas
+                                canvas.RotateDegrees(_rotationDegrees, locPosition.X, locPosition.Y);
+
+                                // Draw the quest location
+                                loc.Draw(canvas, mapParams, localPlayer);
+
+                                // Restore the canvas state
+                                canvas.Restore();
+                            }
+                    } // End QuestHelper
 
                 if (checkBox_ShowMines.Checked && GameData.Mines.TryGetValue(mapID, out var mines))
                 {
@@ -431,14 +506,16 @@ namespace eft_dma_radar.UI.Radar
                     sw.Draw(canvas, mapParams, localPlayer);
                 }
 
-                if (allPlayers != null)
-                {
-                    foreach (var p in allPlayers)
-                    {
-                        if (p == localPlayer) continue;
-                        p.Draw(canvas, mapParams, localPlayer);
+                        // Restore the canvas state
+                        canvas.Restore();
                     }
-                }
+                    if (allPlayers is not null)
+                        foreach (var player in allPlayers) // Draw PMCs
+                        {
+                            if (player == localPlayer)
+                                continue; // Already drawn local player, move on
+                            player.Draw(canvas, mapParams, localPlayer);
+                        } // end ForEach (allPlayers)
 
                 if (checkBox_GrpConnect.Checked && allPlayers != null)
                 {
@@ -458,23 +535,135 @@ namespace eft_dma_radar.UI.Radar
 
                 DrawSelectedLootLine(canvas, localPlayer, mapParams);
 
-                canvas.Save();
-                canvas.RotateDegrees(180, bounds.MidX, bounds.MidY);
+                    // Save the current canvas state
+                    canvas.Save();
 
-                if (allPlayers != null && checkBox_ShowInfoTab.Checked)
-                    _playerInfo?.Draw(canvas, localPlayer, allPlayers);
+                    // Get the center of the canvas
+                    float centerXwidgets = (mapCanvasBounds.Left + mapCanvasBounds.Right) / 2;
+                    float centerYwidgets = (mapCanvasBounds.Top + mapCanvasBounds.Bottom) / 2;
 
-                _mouseOverItem?.DrawMouseover(canvas, mapParams, localPlayer);
+                    // Apply a rotation transformation to the canvas
+                    canvas.RotateDegrees(_rotationDegrees, centerXwidgets, centerYwidgets);
 
-                if (checkBox_ShowLootTab.Checked)
-                    _lootInfo?.Draw(canvas, localPlayer, mousePos, mouseClicked);
+                    // Save the current canvas state
+                    canvas.Save();
 
-                if (Config.ESPWidgetEnabled)
-                    _aimview?.Draw(canvas);
+                    // Get the center of the canvas
+                    float centerXmouseover = (mapCanvasBounds.Left + mapCanvasBounds.Right) / 2;
+                    float centerYmouseover = (mapCanvasBounds.Top + mapCanvasBounds.Bottom) / 2;
 
-                canvas.Restore(); // for rotated widgets
-                canvas.Restore(); // initial canvas rotate
+                    // For mouseover text, we need to handle rotation differently
+                    if (_rotationDegrees == 90 || _rotationDegrees == 270)
+                    {
+                        // When at 90 or 270 degrees, we need to counter-rotate just for the text
+                        if (closestToMouse != null)
+                        {
 
+                            // Get the position where we'll draw the mouseover
+                            Vector2 mouseoverPoint;
+
+                            if (closestToMouse is Player player)
+                            {
+                                var skPoint = player.Position.ToMapPos(map.Config).ToZoomedPos(mapParams);
+                                mouseoverPoint = new Vector2(skPoint.X, skPoint.Y); // Convert SKPoint to Vector2
+                            }
+                            else
+                            {
+                                mouseoverPoint = new Vector2(
+                                    closestToMouse.MouseoverPosition.X,
+                                    closestToMouse.MouseoverPosition.Y
+                                );
+                            }
+
+                            // Save current canvas state
+                            canvas.Save();
+
+                            // Counter-rotate the entire canvas for proper text alignment
+                            canvas.RotateDegrees(-_rotationDegrees, centerX, centerY);
+
+                            // Draw the mouseover item
+                            closestToMouse.DrawMouseover(canvas, mapParams, localPlayer);
+
+                            // Restore the canvas state
+                            canvas.Restore();
+                        }
+                    }
+                    else
+                    {
+                        // For 0 or 180 degrees, the current approach works fine
+                        // Apply normal rotation (this should work fine for 0 and 180 degrees)
+                        canvas.RotateDegrees(_rotationDegrees, centerXmouseover, centerYmouseover);
+
+                        // Draw the mouseover item
+                        closestToMouse?.DrawMouseover(canvas, mapParams, localPlayer);
+                    }
+                    // Restore the canvas state
+                    canvas.Restore();
+                    
+                    // Restore the canvas state
+                    canvas.Restore();
+                 
+                    // Draw Loot Info Widget
+                    if (checkBox_ShowLootTab.Checked) // Loot Overlay
+                    {
+                        // Save the current canvas state
+                        canvas.Save();
+
+                        // Reset any rotation applied to the canvas
+                        canvas.RotateDegrees(-_rotationDegrees, centerX, centerY);
+
+                        // Draw the LootInfoWidget without rotation
+                        _lootInfo?.Draw(canvas, localPlayer, mousePos, mouseClicked);
+
+                        // Restore the canvas state
+                        canvas.Restore();
+                    }
+
+                    // Draw AimView Widget
+                    if (Config.ESPWidgetEnabled)
+                    {
+                        // Save the current canvas state
+                        canvas.Save();
+
+                        // Reset any rotation applied to the canvas
+                        canvas.RotateDegrees(-_rotationDegrees, centerX, centerY);
+
+                        // Draw the LootInfoWidget without rotation
+                        _aimview?.Draw(canvas);
+
+                        // Restore the canvas state
+                        canvas.Restore();
+                    }
+
+                    // Draw Player Info Widget
+                    if (allPlayers is not null && checkBox_ShowInfoTab.Checked) // Players Overlay
+                    {
+                        // Save the current canvas state
+                        canvas.Save();
+
+                        // Reset any rotation applied to the canvas
+                        canvas.RotateDegrees(-_rotationDegrees, centerX, centerY);
+
+                        // Draw the PlayerInfoWidget without rotation
+                        _playerInfo?.Draw(canvas, localPlayer, allPlayers);
+
+                        // Restore the canvas state
+                        canvas.Restore();
+                    }
+
+                    // Restore the canvas state
+                    canvas.Restore();
+
+                }
+                else // LocalPlayer is *not* in a Raid -> Display Reason
+                {
+                    if (!isStarting)
+                        GameNotRunningStatus(canvas);
+                    else if (isStarting && !isReady)
+                        StartingUpStatus(canvas);
+                    else if (!inRaid)
+                        WaitingForRaidStatus(canvas);
+                }
                 SetStatusText(canvas);
                 canvas.Flush();
             }
@@ -1104,6 +1293,8 @@ namespace eft_dma_radar.UI.Radar
             /// Begin Render
             skglControl_Radar.PaintSurface += Radar_PaintSurface;
             _renderTimer.Elapsed += RenderTimer_Elapsed;
+            _rotationDegrees = Config.MapRotation;
+            button_RotateMap.Text = $"Rotate Map ({_rotationDegrees}°)";
         }
 
 
@@ -1325,22 +1516,68 @@ namespace eft_dma_radar.UI.Radar
         }
 
         /// <summary>
+        /// Button for Rotating the map 90 degrees.
+        /// </summary>
+        private void button_RotateMap_Click(object sender, EventArgs e)
+        {
+            // Increment rotation by 90 degrees
+            _rotationDegrees = (_rotationDegrees + 90) % 360;
+
+            // Save to config
+            Config.MapRotation = _rotationDegrees;
+
+            // Update the button text to show current rotation
+            button_RotateMap.Text = $"Rotate Map ({_rotationDegrees}°)";
+        }
+
+
+        /// <summary>
         /// Handles mouse movement on Map Canvas, specifically checks if mouse moves close to a 'Player' position.
         /// </summary>
         private void MapCanvas_MouseMove(object sender, MouseEventArgs e)
         {
             if (_mouseDown && checkBox_MapFree.Checked)
             {
-                // Invert the delta values to rotate the drag direction by 180 degrees
+                // Get raw delta values
                 var deltaX = (e.X - _lastMousePosition.X) * _dragSpeed;
                 var deltaY = (e.Y - _lastMousePosition.Y) * _dragSpeed;
 
-                _mapPanPosition.X += deltaX;
-                _mapPanPosition.Y += deltaY;
+                // Adjust delta based on rotation for dragging
+                float adjustedDeltaX, adjustedDeltaY;
+
+                switch (_rotationDegrees)
+                {
+                    case 90:
+                        // When rotated 90 degrees clockwise:
+                        // For intuitive dragging, invert the Y delta effect
+                        adjustedDeltaX = deltaY;
+                        adjustedDeltaY = -deltaX;  // Changed from deltaX to -deltaX to fix dragging down issue
+                        break;
+                    case 180:
+                        // When rotated 180 degrees, X and Y are both inverted (keep unchanged)
+                        adjustedDeltaX = -deltaX;
+                        adjustedDeltaY = -deltaY;
+                        break;
+                    case 270:
+                        // When rotated 270 degrees clockwise (keep unchanged)
+                        adjustedDeltaX = -deltaY;
+                        adjustedDeltaY = deltaX;
+                        break;
+                    default: // 0 degrees (keep unchanged)
+                        adjustedDeltaX = deltaX;
+                        adjustedDeltaY = deltaY;
+                        break;
+                }
+
+                // Apply the adjusted deltas to map position
+                _mapPanPosition.X -= adjustedDeltaX;
+                _mapPanPosition.Y -= adjustedDeltaY;
+
                 _lastMousePosition = e.Location; // Store the current mouse position for the next move event
             }
             else
             {
+                // Rest of the existing code for handling mouse over items
                 if (!InRaid)
                 {
                     _mouseOverItem = null;
@@ -1355,16 +1592,29 @@ namespace eft_dma_radar.UI.Radar
                     MouseoverGroup = null;
                     return;
                 }
-
                 // Get the center of the canvas
-                var centerX = skglControl_Radar.Width / 2;
-                var centerY = skglControl_Radar.Height / 2;
+                float centerX = skglControl_Radar.Width / 2;
+                float centerY = skglControl_Radar.Height / 2;
 
-                // Rotate the mouse position by 180 degrees around the center of the canvas
-                var mouseX = 2 * centerX - e.X;
-                var mouseY = 2 * centerY - e.Y;
+                // Properly transform the mouse position based on the current rotation
+                float rotatedX, rotatedY;
 
-                var mouse = new Vector2(mouseX, mouseY); // Get rotated mouse position in control
+                // Convert rotation to radians (opposite direction for mouse coordinates)
+                float angle = -_rotationDegrees * (float)Math.PI / 180f;
+
+                // Translate point to origin
+                float translatedX = e.X - centerX;
+                float translatedY = e.Y - centerY;
+
+                // Rotate point
+                rotatedX = (float)(translatedX * Math.Cos(angle) - translatedY * Math.Sin(angle));
+                rotatedY = (float)(translatedX * Math.Sin(angle) + translatedY * Math.Cos(angle));
+
+                // Translate point back
+                rotatedX += centerX;
+                rotatedY += centerY;
+
+                var mouse = new Vector2(rotatedX, rotatedY);
 
                 // Check for switches first and prioritize them
                 if (_switches?.Any() == true)
@@ -2587,6 +2837,7 @@ namespace eft_dma_radar.UI.Radar
                     .ToList();
 
                 Config.Zoom = _zoom;
+                Config.MapRotation = _rotationDegrees;
                 Config.MaxDistance = trackBar_MaxDist.Value;
                 Memory.CloseFPGA(); // Close FPGA
             }

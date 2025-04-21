@@ -34,6 +34,7 @@ namespace eft_dma_radar.UI.Radar
             ComponentResourceManager resources = new ComponentResourceManager(typeof(MainForm));
             tabControl1 = new TabControl();
             tabPage1 = new TabPage();
+            button_RotateMap = new Button();
             button_SettingWidget = new Button();
             flowLayoutPanel_Loot = new FlowLayoutPanel();
             label20 = new Label();
@@ -383,6 +384,7 @@ namespace eft_dma_radar.UI.Radar
             // tabPage1
             // 
             tabPage1.BackColor = Color.Black;
+            tabPage1.Controls.Add(button_RotateMap);
             tabPage1.Controls.Add(button_SettingWidget);
             tabPage1.Controls.Add(flowLayoutPanel_Loot);
             tabPage1.Controls.Add(button_Loot);
@@ -396,12 +398,22 @@ namespace eft_dma_radar.UI.Radar
             tabPage1.TabIndex = 0;
             tabPage1.Text = "Radar";
             // 
+            // button_RotateMap
+            // 
+            button_RotateMap.Location = new Point(205, 6);
+            button_RotateMap.Name = "button_RotateMap";
+            button_RotateMap.Size = new Size(120, 25);
+            button_RotateMap.TabIndex = 0;
+            button_RotateMap.Text = "Rotate Map (0°)";
+            button_RotateMap.UseVisualStyleBackColor = true;
+            button_RotateMap.Click += button_RotateMap_Click;
+            // 
             // button_SettingWidget
             // 
             button_SettingWidget.Location = new Point(135, 6);
             button_SettingWidget.Name = "button_SettingWidget";
             button_SettingWidget.Size = new Size(64, 25);
-            button_SettingWidget.TabIndex = 20;
+            button_SettingWidget.TabIndex = 30;
             button_SettingWidget.Text = "Settings";
             button_SettingWidget.UseVisualStyleBackColor = true;
             button_SettingWidget.Click += button_SettingsWidget_click;
@@ -2742,7 +2754,7 @@ namespace eft_dma_radar.UI.Radar
             // checkBox_ESP_Switches
             // 
             checkBox_ESP_Switches.AutoSize = true;
-            checkBox_ESP_Switches.Location = new Point(182, 71);
+            checkBox_ESP_Switches.Location = new Point(181, 71);
             checkBox_ESP_Switches.Name = "checkBox_ESP_Switches";
             checkBox_ESP_Switches.Size = new Size(104, 19);
             checkBox_ESP_Switches.TabIndex = 74;
@@ -4053,10 +4065,7 @@ namespace eft_dma_radar.UI.Radar
         private LinkLabel linkLabel_CheckForUpdates;
         private Button button_SettingWidget;
         private CheckBox checkBox_ESP_Switches;
-        private FlowLayoutPanel flowLayoutPanelAudio;
-        private Label label32;
-        private CheckBox checkBoxEnableMute;
-        private FlowLayoutPanel flowLayoutPanelAudioOptions;
+        private Button button_RotateMap;
     }
 }
 
